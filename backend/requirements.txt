@@ -1,0 +1,8 @@
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+motor==3.7.1
+pymongo==4.18.2
+pydantic==2.13.5
+snowballstemmer==3.1.1
+# Only needed for the in-memory mode (MONGODB_URI=mongomock://)
+mongomock-motor==0.0.36
