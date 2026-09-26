@@ -57,7 +57,7 @@ describe("App", () => {
     await user.type(screen.getByRole("combobox", { name: "Search" }), "neural");
 
     expect(await screen.findByText("1 result in 3.2 ms")).toBeInTheDocument();
-    const title = screen.getByRole("heading", { level: 3 });
+    const title = screen.getByRole("heading", { level: 2, name: /Deep Learning and/ });
     expect(title).toHaveTextContent("Deep Learning and Neural Networks");
     expect(title.querySelector("a")).toHaveAttribute("href", "https://example.com/dl");
     expect(screen.getAllByText("neural", { selector: "mark" })).toHaveLength(1);
@@ -83,6 +83,67 @@ describe("App", () => {
       const calls = global.fetch.mock.calls.filter(([u]) => u.pathname === "/api/search");
       expect(calls[0][0].searchParams.get("q")).toBe("machne lerning");
     });
+  });
+});
+
+describe("Theme and accessibility", () => {
+  beforeEach(() => {
+    window.history.replaceState(null, "", "/");
+    localStorage.clear();
+    delete document.documentElement.dataset.theme;
+    window.matchMedia = vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    global.fetch = mockFetch();
+  });
+
+  it("toggles dark mode and remembers the choice", async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<App />);
+    await user.click(screen.getByRole("button", { name: "Switch to dark mode" }));
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem("theme")).toBe("dark");
+    unmount();
+
+    render(<App />);
+    expect(screen.getByRole("button", { name: "Switch to light mode" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Switch to light mode" }));
+    expect(document.documentElement.dataset.theme).toBe("light");
+  });
+
+  it("shows the logo, a skip link, and focuses search with /", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    expect(screen.getByRole("link", { name: "Skip to content" })).toHaveAttribute("href", "#main");
+    expect(screen.getByRole("button", { name: "Lumen Search home" }).querySelector("svg")).not.toBeNull();
+    const search = screen.getByRole("combobox", { name: "Search" });
+    search.blur();
+    await user.keyboard("/");
+    expect(search).toHaveFocus();
+    expect(search).toHaveValue("");
+  });
+
+  it("asks for confirmation before deleting a document", async () => {
+    const deleted = [];
+    global.fetch = vi.fn(async (url, init = {}) => {
+      const { pathname } = new URL(url);
+      if (init.method === "DELETE") {
+        deleted.push(pathname);
+        return { ok: true, status: 204, json: async () => null };
+      }
+      const body =
+        pathname === "/api/documents"
+          ? { total: 1, page: 1, size: 10, items: [{ id: "d1", title: "Doc one", keywords: [] }] }
+          : { documents: 1, unique_terms: 3, avg_body_length: 2, top_words: [], popular_queries: [] };
+      return { ok: true, status: 200, json: async () => body };
+    });
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole("button", { name: "Index" }));
+    await user.click(await screen.findByRole("button", { name: "Delete Doc one" }));
+    expect(deleted).toEqual([]);
+    await user.click(screen.getByRole("button", { name: "Confirm deleting Doc one" }));
+    await waitFor(() => expect(deleted).toEqual(["/api/documents/d1"]));
+    expect(await screen.findByText("Deleted “Doc one”.")).toBeInTheDocument();
+    expect(window.location.hash).toBe("#index");
   });
 });
 

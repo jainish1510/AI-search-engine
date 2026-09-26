@@ -37,6 +37,32 @@ frontend that searches as you type.
   `AbortController`, results highlight matches, and tag facets, query-analysis
   panels, pagination and shareable URLs are supported.
 
+### UI/UX and accessibility
+
+- **Dark mode**: follows the OS setting by default. The sun/moon button in the
+  header switches themes, and the choice is remembered. An inline script
+  applies the saved theme before first paint, so the page doesn't flash the
+  wrong theme on load.
+- **Brand icon**: a logo in the header and on the home screen, plus an SVG
+  favicon.
+- **Keyboard**: <kbd>/</kbd> jumps to search from anywhere. Arrow keys, Enter
+  and Esc work in autocomplete. There's a skip-to-content link, visible focus
+  rings, and focus moves to the new section when you switch tabs.
+- **Screen readers**: every view has a heading hierarchy, the result count is
+  announced through a live region, and buttons and icons have accessible
+  names. Highlights render as text, never raw HTML.
+- **Feedback and error recovery**: skeleton placeholders while loading,
+  earlier results dimmed while a new search runs, and a "Try again" button
+  when a search fails. Empty results suggest fixes or removing filters, and
+  deleting a document takes two clicks with a status message.
+- **Layout and state**: 40px+ hit targets (larger on touch screens), a
+  responsive layout with no horizontal scroll at 390px, and animations turned
+  off when the OS asks for reduced motion. The page title and URL (query,
+  page, filters, section) reflect the current view, so links can be shared
+  and back/forward work.
+- Checked with axe-core (WCAG 2 A/AA plus best practices): no violations on
+  any page, in light or dark mode.
+
 ## Project layout
 
 ```

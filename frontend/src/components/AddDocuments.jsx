@@ -36,27 +36,29 @@ function SingleDocumentForm({ onIndexed }) {
     <form className="panel form" onSubmit={submit}>
       <h2 className="panel-title">Add a document</h2>
       <label>
-        Title
-        <input required value={form.title} onChange={update("title")} maxLength={500} />
+        <span>
+          Title <span className="required" aria-hidden="true">*</span>
+        </span>
+        <input required value={form.title} onChange={update("title")} maxLength={500} autoComplete="off" />
       </label>
       <label>
         <span>
           URL <span className="hint">(optional)</span>
         </span>
-        <input type="url" value={form.url} onChange={update("url")} placeholder="https://" />
+        <input type="url" inputMode="url" value={form.url} onChange={update("url")} placeholder="https://example.com/page" />
       </label>
       <label>
         <span>
           Tags <span className="hint">(comma separated)</span>
         </span>
-        <input value={form.tags} onChange={update("tags")} placeholder="ai, search" />
+        <input value={form.tags} onChange={update("tags")} placeholder="ai, search" autoComplete="off" />
       </label>
       <label>
         Content
         <textarea rows={8} value={form.body} onChange={update("body")} />
       </label>
       {preview?.keywords?.length > 0 && (
-        <div className="keyword-preview">
+        <div className="keyword-preview" aria-live="polite">
           <span className="hint">Extracted keywords:</span>
           {preview.keywords.map((k) => (
             <span key={k.text} className="chip chip-keyword" title={`score ${k.score}`}>
@@ -66,9 +68,11 @@ function SingleDocumentForm({ onIndexed }) {
         </div>
       )}
       <button type="submit" className="primary" disabled={!form.title.trim() || status?.kind === "pending"}>
-        Index document
+        {status?.kind === "pending" ? "Indexing…" : "Index document"}
       </button>
-      {status && <p className={`status status-${status.kind}`}>{status.message}</p>}
+      <p className={`status status-${status?.kind || "ok"}`} role={status?.kind === "error" ? "alert" : "status"}>
+        {status?.message}
+      </p>
     </form>
   );
 }
@@ -124,22 +128,30 @@ function BulkUpload({ onIndexed }) {
           <div className="progress" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
             <div style={{ width: `${pct}%` }} />
           </div>
-          <p className="hint">
+          <p className="hint" role="status" aria-live="polite">
             {job.status === "completed" ? "Done" : "Indexing"} — {job.processed}/{job.total} processed
             {job.failed > 0 && `, ${job.failed} failed`}
           </p>
         </div>
       )}
-      {error && <p className="status status-error">{error}</p>}
+      {error && (
+        <p className="status status-error" role="alert">
+          {error}
+        </p>
+      )}
     </section>
   );
 }
 
 export default function AddDocuments({ onIndexed }) {
   return (
-    <div className="two-column">
+    <>
+      <h1 className="page-title">Add documents</h1>
+      <p className="page-intro">New documents are indexed immediately, with keywords extracted automatically.</p>
+      <div className="two-column">
       <SingleDocumentForm onIndexed={onIndexed} />
       <BulkUpload onIndexed={onIndexed} />
-    </div>
+      </div>
+    </>
   );
 }

@@ -41,3 +41,48 @@ export function useAsync(fn, deps, { enabled = true } = {}) {
 
   return state;
 }
+
+const THEME_KEY = "theme";
+const darkQuery = () => window.matchMedia?.("(prefers-color-scheme: dark)");
+
+function readStoredTheme() {
+  try {
+    const value = localStorage.getItem(THEME_KEY);
+    return value === "light" || value === "dark" ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Light/dark theme. Follows the OS setting until the user picks a theme,
+ * then remembers that choice (per browser).
+ */
+export function useTheme() {
+  const [choice, setChoice] = useState(readStoredTheme);
+  const [systemDark, setSystemDark] = useState(() => Boolean(darkQuery()?.matches));
+
+  useEffect(() => {
+    const mq = darkQuery();
+    if (!mq) return undefined;
+    const onChange = (e) => setSystemDark(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+
+  const resolved = choice || (systemDark ? "dark" : "light");
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (choice) root.dataset.theme = choice;
+    else delete root.dataset.theme;
+    try {
+      if (choice) localStorage.setItem(THEME_KEY, choice);
+      else localStorage.removeItem(THEME_KEY);
+    } catch {
+      /* storage unavailable: theme still applies for this visit */
+    }
+  }, [choice]);
+
+  return { choice, resolved, toggle: () => setChoice(resolved === "dark" ? "light" : "dark") };
+}

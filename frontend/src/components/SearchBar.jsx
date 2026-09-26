@@ -16,6 +16,20 @@ export default function SearchBar({ value, onChange, onSubmit, autoFocus = false
 
   useEffect(() => setActive(-1), [data]);
 
+  // "/" focuses the search box from anywhere (unless the user is typing elsewhere).
+  useEffect(() => {
+    const onKey = (event) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const el = document.activeElement;
+      if (el && (el.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(el.tagName))) return;
+      event.preventDefault();
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, []);
+
   const choose = (text) => {
     onChange(text);
     onSubmit?.(text);
@@ -46,7 +60,7 @@ export default function SearchBar({ value, onChange, onSubmit, autoFocus = false
   return (
     <div className="searchbar">
       <form role="search" onSubmit={(e) => e.preventDefault()}>
-        <svg className="searchbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <svg className="searchbar-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
           <circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" strokeWidth="2" />
           <path d="M20 20l-4.3-4.3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
         </svg>
@@ -54,7 +68,9 @@ export default function SearchBar({ value, onChange, onSubmit, autoFocus = false
           ref={inputRef}
           type="search"
           aria-label="Search"
-          placeholder='Ask anything — e.g. how do search engines rank "inverted index" -docker'
+          aria-autocomplete="list"
+          enterKeyHint="search"
+          placeholder="Ask a question or type keywords…"
           value={value}
           autoFocus={autoFocus}
           autoComplete="off"
@@ -70,6 +86,11 @@ export default function SearchBar({ value, onChange, onSubmit, autoFocus = false
           onBlur={() => setTimeout(() => setOpen(false), 120)}
           onKeyDown={onKeyDown}
         />
+        {!value && (
+          <kbd className="searchbar-kbd" aria-hidden="true" title="Press / to search">
+            /
+          </kbd>
+        )}
         {value && (
           <button
             type="button"
